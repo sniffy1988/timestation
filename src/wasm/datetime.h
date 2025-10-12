@@ -119,7 +119,7 @@ uint8_t tsig_datetime_is_eu_dst(tsig_datetime_t datetime,
     uint8_t lsom = fsom + ((31 - fsom) / 7) * 7;
     uint8_t is_changed = (day == lsom && hour >= 1) || day > lsom;
 
-    is_est = (mon == 3) != is_changed;
+    is_est = (mon == 3) == is_changed;
 
     if (day == lsom - 1)
       in_mins = 60 * (24 - hour) + 60 - min;
