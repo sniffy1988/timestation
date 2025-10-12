@@ -221,14 +221,15 @@ static void tsig_xmit_dcf77(tsig_datetime_t datetime, tsig_params_t *params,
   double utc_timestamp = datetime.timestamp - utc_offset;
   tsig_datetime_t utc_datetime = tsig_datetime_parse_timestamp(utc_timestamp);
 
+  /* Transmitted time is the CET/CEST time at the next UTC minute. */
   uint32_t in_mins;
   uint8_t is_cest = tsig_datetime_is_eu_dst(utc_datetime, &in_mins);
-  bits[16] = in_mins <= 60;
-  bits[17] = is_cest;
-  bits[18] = !is_cest;
+  uint8_t is_xmit_cest = is_cest ^ (in_mins == 1);
 
-  /* Transmitted time is the CET/CEST time at the next UTC minute. */
-  uint8_t is_xmit_cest = (is_cest && in_mins > 1) || (!is_cest && in_mins == 1);
+  bits[16] = in_mins <= 60;
+  bits[17] = is_xmit_cest;
+  bits[18] = !is_xmit_cest;
+
   uint32_t cest_offset = is_xmit_cest * TSIG_DATETIME_MSECS_HOUR;
   uint32_t xmit_offset = TSIG_DATETIME_MSECS_MIN;
   double xmit_timestamp = datetime.timestamp + cest_offset + xmit_offset;
@@ -457,7 +458,7 @@ static void tsig_xmit_msf(tsig_datetime_t datetime, tsig_params_t *params,
   uint8_t is_bst = tsig_datetime_is_eu_dst(datetime, &in_mins);
 
   /* Transmitted time is the UTC/BST time at the next UTC minute. */
-  uint8_t is_xmit_bst = (is_bst && in_mins > 1) || (!is_bst && in_mins == 1);
+  uint8_t is_xmit_bst = is_bst ^ (in_mins == 1);
   uint32_t bst_offset = is_xmit_bst * TSIG_DATETIME_MSECS_HOUR;
   uint32_t xmit_offset = TSIG_DATETIME_MSECS_MIN;
   double xmit_timestamp = datetime.timestamp + bst_offset + xmit_offset;
