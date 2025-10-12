@@ -7,10 +7,10 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 export default defineConfig({
   test: {
     browser: {
+      provider: "playwright",
       enabled: true,
-      name: "chrome",
+      instances: [{ browser: "chromium" }],
       headless: true,
-      fileParallelism: false,
     },
     coverage: {
       enabled: true,
@@ -24,9 +24,11 @@ export default defineConfig({
       babelConfig: {
         babelrc: false,
         configFile: false,
-        presets: ["@babel/preset-typescript"],
+        presets: [
+          ["@babel/preset-typescript", { allowDeclareFields: true }],
+        ],
         plugins: [
-          ["@babel/plugin-proposal-decorators", { version: "2023-05" }],
+          ["@babel/plugin-proposal-decorators", { version: "2023-11" }],
         ],
         sourceMaps: "inline",
       },

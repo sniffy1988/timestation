@@ -20,15 +20,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
+      - name: Setup Playwright browsers
+        run: npx playwright install --with-deps
 
       - name: Build
         run: npm run build # Also builds WebAssembly modules.
