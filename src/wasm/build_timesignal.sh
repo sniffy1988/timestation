@@ -12,7 +12,6 @@ EMCC_PARAMS=(
   '-sWASM_WORKERS'
   '-sMALLOC=none'
   '-sEXPORT_ES6'
-  '-sJS_MATH'
   '-O3'
 )
 

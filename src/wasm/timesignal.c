@@ -11,7 +11,7 @@
  * Building this module requires a number of emcc flags, e.g.:
  *
  *  emcc timesignal.c -o timesignal.js -sEXPORT_NAME=createTimeSignalModule \
- *    -sMODULARIZE -sAUDIO_WORKLET -sWASM_WORKERS -sJS_MATH -sEXPORT_ES6 \
+ *    -sMODULARIZE -sAUDIO_WORKLET -sWASM_WORKERS -sEXPORT_ES6 \
  *    -sALLOW_TABLE_GROWTH -sSTACK_SIZE=32768 -sINITIAL_MEMORY=65536 -sMALLOC=none \
  *    -sEXPORTED_RUNTIME_METHODS="addFunction,emscriptenGetAudioObject,emscriptenRegisterAudioObject,wasmTable"
  *

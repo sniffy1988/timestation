@@ -1,12 +1,11 @@
 #pragma once
 
 #include <stdint.h>
-#include <math.h>
 #include <emscripten/webaudio.h>
 #include "datetime.h"
+#include "iir.h"
 #include "timesignal.h"
 
-#define TSIG_WAVEFORM_2PI                   6.28318530717958647692
 #define TSIG_WAVEFORM_LERP_RATE             0.015F
 #define TSIG_WAVEFORM_LERP_MIN_DELTA        0.005F
 #define TSIG_WAVEFORM_SYNC_MARKER           0xff
@@ -115,15 +114,13 @@ typedef struct tsig_waveform_ctx_t {
   uint32_t morse_end; /** Sample count when on-off keying should stop. */
   uint16_t tick;      /** Tick index within current station minute. */
 
-  uint32_t phase_delta; /** Phase numerator delta per generated sample. */
-  uint32_t phase_base;  /** Phase denominator. */
-  uint32_t phase;       /** Phase numerator. */
-
   uint32_t max_fade_gain; /** Maximum fade gain. */
   uint32_t fade_gain;     /** Fade gain. Relative to max. */
   float gain;             /** Actual current gain in [0.0F-1.0F]. */
 
-  int scale; /** Scale factor for emulated integer-quantized LPCM. */
+  tsig_iir_t iir; /** IIR filter sine wave generator. */
+  uint32_t freq;  /** Frequency of generated waveform. */
+  int scale;      /** Scale factor for emulated integer-quantized LPCM. */
 } tsig_waveform_ctx_t;
 
 static inline uint32_t tsig_calculate_target_hz(tsig_params_t *params) {
@@ -138,12 +135,6 @@ static inline uint8_t tsig_calculate_subharmonic(uint32_t target_hz) {
   return target_hz <= TSIG_WAVEFORM_SUBHARMONIC_THRESHOLD
              ? TSIG_WAVEFORM_SUBHARMONIC_THIRD
              : TSIG_WAVEFORM_SUBHARMONIC_FIFTH;
-}
-
-static inline uint32_t tsig_gcd(uint32_t a, uint32_t b) {
-  for (uint32_t c; b; a = b, b = c)
-    c = a % b;
-  return a;
 }
 
 static inline uint8_t tsig_even_parity(uint8_t data[], int lo, int hi) {
@@ -639,13 +630,14 @@ static inline float tsig_gen_next_sample(tsig_waveform_ctx_t *ctx) {
    * number of the subharmonic we're using should work.
    * cf. https://jjy.luxferre.top/
    */
-  double angle = TSIG_WAVEFORM_2PI * ctx->phase / ctx->phase_base;
-  int lpcm_sample = sin(angle) * ctx->gain * ctx->scale;
+  double sample = tsig_iir_next(&ctx->iir);
+  int lpcm_sample = sample * ctx->gain * ctx->scale;
   return (float)lpcm_sample / ctx->scale;
 }
 
 static inline float tsig_lerp(float target_gain, float gain) {
-  return fabsf(target_gain - gain) > TSIG_WAVEFORM_LERP_MIN_DELTA
+  float delta = target_gain > gain ? target_gain - gain : gain - target_gain;
+  return delta > TSIG_WAVEFORM_LERP_MIN_DELTA
              ? (1.0F - TSIG_WAVEFORM_LERP_RATE) * gain +
                    TSIG_WAVEFORM_LERP_RATE * target_gain
              : target_gain;
@@ -703,10 +695,8 @@ void tsig_waveform_generate(tsig_waveform_ctx_t *ctx, tsig_params_t *params,
        */
       if (!ctx->samples) {
         uint32_t msec_to_min = TSIG_DATETIME_MSECS_MIN - msec_since_min;
-        uint32_t to_min = msec_to_min * ctx->sample_rate / 1000;
-        uint32_t phase_to_min = (to_min * ctx->phase_delta) % ctx->phase_base;
-        if (phase_to_min)
-          ctx->phase = ctx->phase_base - phase_to_min;
+        int to_min = msec_to_min * ctx->sample_rate / 1000;
+        tsig_iir_init(&ctx->iir, ctx->freq, ctx->sample_rate, -to_min);
       }
 
       /*
@@ -763,10 +753,6 @@ void tsig_waveform_generate(tsig_waveform_ctx_t *ctx, tsig_params_t *params,
       for (int c = 0; c < outputs[o].numberOfChannels; c++)
         outputs[o].data[c * TSIG_RENDER_QUANTUM + i] = sample;
 
-    ctx->phase += ctx->phase_delta;
-    if (ctx->phase >= ctx->phase_base)
-      ctx->phase -= ctx->phase_base;
-
     ctx->samples++;
 
     /* Fade in/out. Initiate a phase transition once fade is complete. */
@@ -811,24 +797,19 @@ void tsig_waveform_init(tsig_waveform_ctx_t *ctx, tsig_params_t *params) {
   uint32_t sample_rate = ctx->sample_rate;
   uint8_t subharmonic;
   uint32_t target_hz;
-  uint32_t gcd;
 
   target_hz = tsig_calculate_target_hz(params);
   subharmonic = tsig_calculate_subharmonic(target_hz);
-  gcd = tsig_gcd(target_hz, sample_rate * subharmonic);
 
   ctx->timestamp = timestamp + utc_offset + render_quantum_ms;
   ctx->samples = 0;
   ctx->next_tick = 0;
   ctx->morse_end = 0;
 
-  ctx->phase_delta = target_hz / gcd;
-  ctx->phase_base = sample_rate * subharmonic / gcd;
-  ctx->phase = 0;
-
   ctx->max_fade_gain = sample_rate * TSIG_FADE_MS / 1000;
   ctx->fade_gain = 0;
   ctx->gain = 0.0;
 
+  ctx->freq = target_hz / subharmonic;
   ctx->scale = sample_rate / subharmonic;
 }
