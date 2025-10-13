@@ -339,6 +339,7 @@ EMSCRIPTEN_KEEPALIVE void tsig_start() {
  * @param station Time station.
  * @param jjy_khz JJY frequency.
  * @param dut1 DUT1 value in milliseconds.
+ * @param noclip Whether to interpolate gain changes.
  * @note Should be called by JS in response to being notified of a state
  *  transition to `TSIG_STATE_REQ_PARAMS`.
  */
