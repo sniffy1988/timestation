@@ -65,6 +65,10 @@ export class StartStopButton extends BaseElement {
 
   #advisoryCheckboxRef = createRef<HTMLInputElement>();
 
+  forceShowWarning = true;
+
+  forceShowAdvisory = true;
+
   #showWarningModal() {
     this.#warningDialogRef.value?.showModal();
   }
@@ -72,6 +76,8 @@ export class StartStopButton extends BaseElement {
   #closeWarningModal() {
     const checkbox = this.#warningCheckboxRef.value;
     if (checkbox != null) AppSettings.set("nanny", checkbox.checked);
+    this.forceShowWarning = false;
+    this.#startRadioTimeSignal();
   }
 
   #showAdvisoryModal() {
@@ -81,14 +87,21 @@ export class StartStopButton extends BaseElement {
   #closeAdvisoryModal() {
     const checkbox = this.#advisoryCheckboxRef.value;
     if (checkbox != null) AppSettings.set("advisory", checkbox.checked);
+    this.forceShowAdvisory = false;
+    this.#startRadioTimeSignal();
   }
 
   #start() {
     const isAudible = AppSettings.get("audible");
 
-    if (isAudible && AppSettings.get("advisory")) this.#showAdvisoryModal();
-    else if (!isAudible && AppSettings.get("nanny")) this.#showWarningModal();
+    if (isAudible && (this.forceShowAdvisory || AppSettings.get("advisory")))
+      this.#showAdvisoryModal();
+    else if (!isAudible && (this.forceShowWarning || AppSettings.get("nanny")))
+      this.#showWarningModal();
+    else this.#startRadioTimeSignal();
+  }
 
+  #startRadioTimeSignal() {
     RadioTimeSignal.start({
       stationIndex: knownStations.indexOf(AppSettings.get("station")),
       jjyKhzIndex: knownJjyKhz.indexOf(AppSettings.get("jjyKhz")),
@@ -187,8 +200,9 @@ export class StartStopButton extends BaseElement {
               </p>
               <p>Use a visual volume indicator instead.</p>
               <p>
-                The generated waveform has full dynamic range, but is pitched
-                high enough to be difficult to perceive.
+                The waveform that will be generated when you close this dialog
+                has full dynamic range, but is pitched high enough to be
+                difficult to perceive.
               </p>
               <p>
                 <span class="font-bold">
@@ -238,11 +252,12 @@ export class StartStopButton extends BaseElement {
             <span class="flex min-w-0 flex-col gap-2">
               <p>
                 <span class="font-bold">
-                  Emulated time signal is audible.
+                  Emulated time signal will be audible.
                 </span>
               </p>
               <p>
-                The sound you hear is the emulated radio time signal that
+                The loud sound you will hear when you close this dialog is the
+                emulated radio time signal that
                 <span class="font-semibold">Time Station Emulator</span>
                 would normally transmit, pitch-shifted down to be easily
                 audible.

@@ -29,6 +29,8 @@ describe("Start-stop button", () => {
   beforeEach(async () => {
     startStopButton = document.createElement("start-stop-button");
     startStopButton.setAttribute("classes", "foo bar");
+    startStopButton.forceShowWarning = false;
+    startStopButton.forceShowAdvisory = false;
     document.body.appendChild(startStopButton);
     await delay();
     innerButton = startStopButton.querySelector("button.btn")!;
@@ -129,6 +131,8 @@ describe("Start-stop button", () => {
   describe("handles ServerOffsetEvent", () => {
     it("saves server offset", () => {
       EventBus.publish(ServerOffsetEvent, -1234);
+      FakeAppSettings.get.mockReturnValueOnce(false); /* audible == false */
+      FakeAppSettings.get.mockReturnValueOnce(false); /* nanny == false */
       innerButton.click();
       expect(FakeRadioTimeSignal.start).toHaveBeenCalled();
       const { offset } = FakeRadioTimeSignal.start.mock.lastCall![0];
@@ -138,6 +142,8 @@ describe("Start-stop button", () => {
 
   describe("toggles playback upon click", () => {
     beforeEach(() => {
+      FakeAppSettings.get.mockReturnValueOnce(false); /* audible == false */
+      FakeAppSettings.get.mockReturnValueOnce(false); /* nanny == false */
       innerButton.click();
     });
 
@@ -165,6 +171,15 @@ describe("Start-stop button", () => {
   });
 
   describe("can show a safety warning", () => {
+    it("shows forced warning on first start of session", () => {
+      const spy = vi.spyOn(innerWarningDialog, "showModal");
+      startStopButton.forceShowWarning = true;
+      FakeAppSettings.get.mockReturnValueOnce(false); /* audible == false */
+      innerButton.click();
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
     it("shows warning by default", () => {
       const spy = vi.spyOn(innerWarningDialog, "showModal");
       FakeAppSettings.get.mockReturnValueOnce(false); /* audible == false */
@@ -193,9 +208,27 @@ describe("Start-stop button", () => {
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });
+
+    it("starts playback upon warning close", async () => {
+      const button: HTMLButtonElement =
+        innerWarningDialog.querySelector("button.btn")!;
+      innerWarningDialog.showModal();
+      button.click();
+      await delay(100);
+      expect(FakeRadioTimeSignal.start).toHaveBeenCalled();
+      expect(FakeRadioTimeSignal.stop).not.toHaveBeenCalled();
+    });
   });
 
   describe("can show an advisory", () => {
+    it("shows forced advisory on first start of session", () => {
+      const spy = vi.spyOn(innerAdvisoryDialog, "showModal");
+      FakeAppSettings.get.mockReturnValueOnce(true); /* audible == true */
+      startStopButton.forceShowAdvisory = true;
+      innerButton.click();
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
     it("does not show advisory by default", () => {
       const spy = vi.spyOn(innerAdvisoryDialog, "showModal");
       FakeAppSettings.get.mockReturnValueOnce(false); /* audible == false */
@@ -222,6 +255,16 @@ describe("Start-stop button", () => {
       innerButton.click();
       expect(spy).toHaveBeenCalledOnce();
       spy.mockRestore();
+    });
+
+    it("starts playback upon advisory close", async () => {
+      const button: HTMLButtonElement =
+        innerAdvisoryDialog.querySelector("button.btn")!;
+      innerAdvisoryDialog.showModal();
+      button.click();
+      await delay(100);
+      expect(FakeRadioTimeSignal.start).toHaveBeenCalled();
+      expect(FakeRadioTimeSignal.stop).not.toHaveBeenCalled();
     });
   });
 });
