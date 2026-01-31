@@ -169,8 +169,7 @@ export class TimeStationEmulator extends BaseElement {
         this.publish(
           ToastEvent,
           "warning",
-          html`Your browser is Mobile Safari, which probably won&rsquo;t work.
-          Good luck!`,
+          "Your browser is Mobile Safari, which may not work. Good luck!",
         );
       } else if (isMobileFirefox) {
         this.publish(

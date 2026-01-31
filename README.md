@@ -57,12 +57,13 @@ The hard requirements of note are browser WebAssembly support and DAC support
 for &ge;44.1 KHz PCM. Almost any device running a browser from &ge;2019 should
 work.
 
-However, as of early 2024, **Safari on iOS** and **Firefox on Android** have
-multiple breaking issues and **will not work**.
-
-For other devices, **Time Station Emulator** works best with a
+In general, **Time Station Emulator** works best with a
 **built-in speaker** of a **phone or tablet**. See
 [Technical Details](#technical-details) for an explanation.
+
+As of early 2024, **Safari on iOS** and **Firefox on Android** had multiple
+breaking issues that prevented them from working. As of early 2026, these
+issues appear to have been resolved for at least some users. Good luck!
 
 ## Usage
 
