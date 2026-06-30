@@ -15,7 +15,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN . /emsdk/emsdk_env.sh && npm run build
+# emsdk_env.sh prepends Node 16 to PATH; run WASM compile under emsdk only.
+RUN . /emsdk/emsdk_env.sh && npm run prebuild
+RUN npx vite build
 
 FROM nginx:alpine AS runtime
 
