@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
-FROM emscripten/emsdk:3.1.54 AS build
+# WASM build is arch-independent; always compile on the native builder platform.
+FROM --platform=$BUILDPLATFORM emscripten/emsdk:3.1.54 AS build
 
 WORKDIR /app
 
@@ -14,7 +15,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN . /emsdk/emsdk_env.sh && npm run build
 
 FROM nginx:alpine AS runtime
 
