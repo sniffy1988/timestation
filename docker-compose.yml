@@ -1,14 +1,10 @@
 services:
   timestation:
     image: ghcr.io/sniffy1988/timestation:latest
-    init: true
     ports:
       - target: 356
         published: 356
         protocol: tcp
     environment:
-      NTP_SERVER: 192.168.88.1
-    cap_add:
-      - SYS_TIME
-      - SYS_NICE
+      NTP_SERVER: 10.10.20.20
     restart: unless-stopped
