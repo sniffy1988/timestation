@@ -25,13 +25,13 @@ RUN npx vite build
 
 FROM nginx:alpine AS runtime
 
-RUN apk add --no-cache chrony
+RUN apk add --no-cache chrony openssl
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 356
+EXPOSE 356 357
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -67,8 +67,10 @@ issues appear to have been resolved for at least some users. Good luck!
 
 ## Usage
 
-Open **Time Station Emulator** in a browser at `http://<host>:356` after
-[self-hosting](#self-hosting) the Docker stack.
+Open **Time Station Emulator** in a browser after [self-hosting](#self-hosting):
+
+- **Phone/tablet on LAN:** `https://<host>:356` (accept the self-signed certificate warning)
+- **On the Mac itself:** `http://localhost:357`
 
 <details>
   <summary>click to expand/hide</summary>
@@ -129,9 +131,22 @@ The container syncs its clock to that server via chrony before serving traffic.
    (`ghcr.io`, your GitHub username, and a personal access token with
    `read:packages`).
 2. In Portainer: **Stacks → Add stack → Web editor**.
-3. Paste the contents of [`docker-compose.yml`](docker-compose.yml) and set your
-   Mikrotik IP in `NTP_SERVER` (replace `192.168.88.1`).
-4. Deploy the stack and open `http://<host>:356`.
+3. Paste the contents of [`docker-compose.yml`](docker-compose.yml).
+4. Set `TLS_SAN` to include your server IP, e.g.
+   `DNS:localhost,IP:127.0.0.1,IP:10.10.20.50`.
+5. Deploy the stack.
+
+**URLs:**
+
+| Device | URL |
+| --- | --- |
+| Phone/tablet on Wi‑Fi | `https://<server-ip>:356` |
+| Mac browser (local test) | `http://localhost:357` |
+
+Browsers require a **secure context** (HTTPS or localhost). Plain
+`http://<ip>:356` will not work.
+
+On first visit via HTTPS, accept the self-signed certificate warning.
 
 The stack pulls `ghcr.io/sniffy1988/timestation:latest` (built by this fork's
 GitHub Actions on push to `main`).

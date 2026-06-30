@@ -5,6 +5,11 @@ services:
       - target: 356
         published: 356
         protocol: tcp
+      - target: 357
+        published: 357
+        protocol: tcp
     environment:
       NTP_SERVER: 10.10.20.20
+      CHRONY_DISABLE: "true"
+      TLS_SAN: "DNS:localhost,IP:127.0.0.1"
     restart: unless-stopped
