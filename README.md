@@ -117,13 +117,40 @@ The app is packaged as a multi-arch Docker image (`linux/amd64` and
 
 ### Mikrotik NTP
 
-Enable the NTP server on your Mikrotik router and note its LAN IP address:
+Enable the NTP server on your Mikrotik router:
 
-```
+```routeros
+/system ntp client set enabled=yes mode=unicast
+/system ntp client servers add address=time.google.com
 /system ntp server set enabled=yes
 ```
 
-The container syncs its clock to that server via chrony before serving traffic.
+Your Mikrotik LAN IP is the NTP server for the network (e.g. `10.10.20.20`).
+
+### Mac host time (recommended for Portainer on Mac)
+
+Portainer does not configure NTP. On Docker Desktop for Mac, containers inherit
+the clock from the Mac host — sync the **Mac** to Mikrotik instead of chrony
+inside each container.
+
+**Terminal on the Mac Mini:**
+
+```sh
+sudo systemsetup -setusingnetworktime on
+sudo systemsetup -setnetworktimeserver 10.10.20.20
+```
+
+Verify:
+
+```sh
+sntp -s 10.10.20.20
+systemsetup -getnetworktimeserver
+```
+
+**System Settings:** General → Date & Time → enable automatic date and time.
+
+With the host clock correct, set `CHRONY_DISABLE=true` in the stack (default in
+[`docker-compose.yml`](docker-compose.yml)) and skip per-container NTP.
 
 ### Portainer (Mac Mini / Apple Silicon)
 
@@ -133,7 +160,7 @@ The container syncs its clock to that server via chrony before serving traffic.
 2. In Portainer: **Stacks → Add stack → Web editor**.
 3. Paste the contents of [`docker-compose.yml`](docker-compose.yml).
 4. Set `TLS_SAN` to include your server IP, e.g.
-   `DNS:localhost,IP:127.0.0.1,IP:10.10.20.50`.
+   `DNS:localhost,IP:127.0.0.1,IP:10.10.20.22`.
 5. Deploy the stack.
 
 **URLs:**
@@ -164,27 +191,23 @@ NTP_SERVER=192.168.88.1 docker compose -f docker-compose.build.yml up --build
 
 ### Verify time sync
 
-- Check container logs for `NTP sync OK` and chrony `tracking` output.
-- If sync fails, logs show `chronyc sources` — `^?` means the server is unreachable.
+- On the Mac: `sntp -s 10.10.20.20` should return a small offset (e.g. `+0.08`).
 - In browser devtools, confirm `HEAD` requests to `serverTime.*` return a
   `Date` header and COI headers (`Cross-Origin-Opener-Policy`,
   `Cross-Origin-Embedder-Policy`).
 
-### NTP troubleshooting (Mikrotik)
+### NTP troubleshooting (Linux host only)
 
-If chrony cannot sync (`refid: 00000000`):
+If you run Docker on **Linux** (not Mac), you can enable in-container chrony
+instead of host sync:
 
-1. Enable NTP server on Mikrotik:
-   ```
-   /system ntp server set enabled=yes
-   ```
-2. Allow UDP port 123 in the firewall from your Docker/LAN subnet to the router.
-3. Confirm `NTP_SERVER` is the router LAN IP (you use `10.10.20.20`).
-4. On Docker Desktop (Mac), bridge networking should reach the LAN; if not,
-   sync the Mac host clock to Mikrotik instead — the container inherits it.
+```yaml
+environment:
+  NTP_SERVER: 10.10.20.20
+  CHRONY_DISABLE: "false"
+```
 
-The container starts nginx even when NTP sync fails (with a warning). Set
-`NTP_SYNC_REQUIRED=true` to keep the old strict behaviour.
+Add `cap_add: [SYS_TIME, SYS_NICE]` on a **standalone** Docker endpoint.
 
 ## Technical Details
 
