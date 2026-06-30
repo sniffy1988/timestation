@@ -1,11 +1,13 @@
 services:
   timestation:
-    image: ghcr.io/sniffy1988/timestation:${TAG:-latest}
-    platform: linux/arm64
+    image: ghcr.io/sniffy1988/timestation:latest
+    init: true
     ports:
-      - "${HTTP_PORT:-356}:356"
+      - target: 356
+        published: 356
+        protocol: tcp
     environment:
-      NTP_SERVER: ${NTP_SERVER}
+      NTP_SERVER: 192.168.88.1
     cap_add:
       - SYS_TIME
       - SYS_NICE

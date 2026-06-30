@@ -129,12 +129,9 @@ The container syncs its clock to that server via chrony before serving traffic.
    (`ghcr.io`, your GitHub username, and a personal access token with
    `read:packages`).
 2. In Portainer: **Stacks → Add stack → Web editor**.
-3. Paste the contents of [`docker-compose.yml`](docker-compose.yml).
-4. Set environment variables:
-   - `NTP_SERVER` — Mikrotik LAN IP (e.g. `192.168.88.1`)
-   - `HTTP_PORT` — optional host port (default `356`)
-   - `TAG` — optional image tag (default `latest`)
-5. Deploy the stack and open `http://<host>:356`.
+3. Paste the contents of [`docker-compose.yml`](docker-compose.yml) and set your
+   Mikrotik IP in `NTP_SERVER` (replace `192.168.88.1`).
+4. Deploy the stack and open `http://<host>:356`.
 
 The stack pulls `ghcr.io/sniffy1988/timestation:latest` (built by this fork's
 GitHub Actions on push to `main`).
@@ -152,10 +149,27 @@ NTP_SERVER=192.168.88.1 docker compose -f docker-compose.build.yml up --build
 
 ### Verify time sync
 
-- Check container logs for chrony `tracking` output after startup.
+- Check container logs for `NTP sync OK` and chrony `tracking` output.
+- If sync fails, logs show `chronyc sources` — `^?` means the server is unreachable.
 - In browser devtools, confirm `HEAD` requests to `serverTime.*` return a
   `Date` header and COI headers (`Cross-Origin-Opener-Policy`,
   `Cross-Origin-Embedder-Policy`).
+
+### NTP troubleshooting (Mikrotik)
+
+If chrony cannot sync (`refid: 00000000`):
+
+1. Enable NTP server on Mikrotik:
+   ```
+   /system ntp server set enabled=yes
+   ```
+2. Allow UDP port 123 in the firewall from your Docker/LAN subnet to the router.
+3. Confirm `NTP_SERVER` is the router LAN IP (you use `10.10.20.20`).
+4. On Docker Desktop (Mac), bridge networking should reach the LAN; if not,
+   sync the Mac host clock to Mikrotik instead — the container inherits it.
+
+The container starts nginx even when NTP sync fails (with a warning). Set
+`NTP_SYNC_REQUIRED=true` to keep the old strict behaviour.
 
 ## Technical Details
 
