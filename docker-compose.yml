@@ -1,0 +1,12 @@
+services:
+  timestation:
+    image: ghcr.io/sniffy1988/timestation:${TAG:-latest}
+    platform: linux/arm64
+    ports:
+      - "${HTTP_PORT:-356}:356"
+    environment:
+      NTP_SERVER: ${NTP_SERVER}
+    cap_add:
+      - SYS_TIME
+      - SYS_NICE
+    restart: unless-stopped

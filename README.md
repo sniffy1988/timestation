@@ -67,7 +67,8 @@ issues appear to have been resolved for at least some users. Good luck!
 
 ## Usage
 
-**Time Station Emulator** is hosted at https://timestation.pages.dev/.
+Open **Time Station Emulator** in a browser at `http://<host>:356` after
+[self-hosting](#self-hosting) the Docker stack.
 
 <details>
   <summary>click to expand/hide</summary>
@@ -106,6 +107,55 @@ issues appear to have been resolved for at least some users. Good luck!
    If all goes well, the clock will set itself within three minutes.
 
 </details>
+
+## Self-hosting
+
+The app is packaged as a multi-arch Docker image (`linux/amd64` and
+`linux/arm64`) published to GitHub Container Registry on every push to `main`.
+
+### Mikrotik NTP
+
+Enable the NTP server on your Mikrotik router and note its LAN IP address:
+
+```
+/system ntp server set enabled=yes
+```
+
+The container syncs its clock to that server via chrony before serving traffic.
+
+### Portainer (Mac Mini / Apple Silicon)
+
+1. Make the GHCR package public, or add registry credentials in Portainer
+   (`ghcr.io`, your GitHub username, and a personal access token with
+   `read:packages`).
+2. In Portainer: **Stacks → Add stack → Web editor**.
+3. Paste the contents of [`docker-compose.yml`](docker-compose.yml).
+4. Set environment variables:
+   - `NTP_SERVER` — Mikrotik LAN IP (e.g. `192.168.88.1`)
+   - `HTTP_PORT` — optional host port (default `356`)
+   - `TAG` — optional image tag (default `latest`)
+5. Deploy the stack and open `http://<host>:356`.
+
+The stack pulls `ghcr.io/sniffy1988/timestation:latest` (built by this fork's
+GitHub Actions on push to `main`).
+
+On Apple Silicon, Portainer pulls the `linux/arm64` manifest automatically from
+the multi-arch `:latest` tag.
+
+### Local build
+
+To build and run without pulling from GHCR:
+
+```sh
+NTP_SERVER=192.168.88.1 docker compose -f docker-compose.build.yml up --build
+```
+
+### Verify time sync
+
+- Check container logs for chrony `tracking` output after startup.
+- In browser devtools, confirm `HEAD` requests to `serverTime.*` return a
+  `Date` header and COI headers (`Cross-Origin-Opener-Policy`,
+  `Cross-Origin-Embedder-Policy`).
 
 ## Technical Details
 
